@@ -82,23 +82,107 @@ function factorString(e) {
 
 /* ================= state ================= */
 
-const DIAMOND_7 = '1/1 8/7 7/6 6/5 5/4 4/3 7/5 10/7 3/2 8/5 5/3 12/7 7/4';
-const PRESETS = [
-  { id: 'diamond7', name: '7-limit tonality diamond', notes: DIAMOND_7 },
-  { id: 'otonal', name: 'Otonal tetrad 4:5:6:7', notes: '4:5:6:7' },
-  { id: 'utonal', name: 'Utonal tetrad 1/(4:5:6:7)', notes: '1/1 8/7 4/3 8/5' },
-  { id: 'hexany', name: 'Hexany of 1, 3, 5, 7', notes: '3/2 5/4 7/4 15/8 21/16 35/32', rods: 'diagonal' },
-  { id: 'major', name: 'Major triad 4:5:6', notes: '4:5:6' },
-  { id: 'minor', name: 'Minor triad 10:12:15', notes: '10:12:15' },
-  { id: 'ptolemy', name: 'Just major scale', notes: '1/1 9/8 5/4 4/3 3/2 5/3 15/8' },
-  { id: 'diamond5', name: '5-limit tonality diamond', notes: '1/1 6/5 5/4 4/3 3/2 8/5 5/3' },
-  { id: 'duodene', name: 'Ellis duodene', notes: '5/3 5/4 15/8 45/32\n4/3 1/1 3/2 9/8\n16/15 8/5 6/5 9/5' },
-  { id: 'harmonics', name: 'Harmonics 1 to 6', notes: '1:2:3:4:5:6', lattice: '235' },
-  { id: 'harmonics16', name: '5-limit harmonics up to 16', notes: '1 2 3 4 5 6 8 9 10 12 15 16', lattice: '235' },
-];
+// The note-set library. Edit freely: a line without // is a group (indent to nest groups),
+// a line with // is a set: its ratios, then // and its name.
+const LIBRARY_TEXT = `
+Chords
+  1/1 5/1 3/1 // Major triad
+  1/1 3/5 3/1 // Minor triad
+  1/1 5/1 3/1 15/1 // Major 7th
+  1/1 3/5 3/1 9/5 // Minor 7th (major 6th)
+  1/1 5/1 3/1 7/1 // Harmonic 7th overtonal (dominant 7th)
+  1/1 1/5 1/3 1/7 // Harmonic 7th undertonal (minor 6th, half diminished)
+  5/1 3/1 7/1 21/5 // Diminished overtonal
+  1/5 1/3 1/7 5/21 // Diminished undertonal
+Pentatonic scales
+  1/1, 3/1, 9/1, 5/3, 5/1 // Major pentatonic
+  3/5, 9/5, 1/3, 1/1, 3/1 // Minor pentatonic
+  1/3, 1/1, 3/1, 5/1, 15/1 // Bati major
+  1/15, 1/5, 1/3, 1/1, 3/1 // Hirajoshi / Tizita minor
+Diatonic scales
+  1/27, 1/9, 1/3, 1/1, 3/1, 9/1, 27/1 // Pythagorean (modal scale shape 1)
+  1/3, 1/1, 3/1, 9/1, 5/3, 5/1, 15/1 // Major (modal scale shape 2)
+  3/5, 9/5, 1/3, 1/1, 3/1, 5/9, 5/3 // Dorian (modal scale shape 3)
+  1/5, 3/5, 1/9, 1/3, 1/1, 3/1, 5/9 // Natural minor (modal scale shape 4)
+  3/5, 1/3, 1/1, 3/1, 9/1, 27/1, 15/1 // Melodic minor
+  1/5 3/5, 1/3, 1/1, 3/1, 9/1, 15/1 // Harmonic minor
+  1/15, 1/5, 1/3, 1/1, 3/1, 5/1, 15/1 // Double harmonic
+Arithmophone
+  Pentatonic scale system
+    1/3, 1/1, 3/1, 5/9, 5/3 // Sun Occident
+    1/3, 1/1, 3/1, 5/3, 5/1 // Sun Meridian
+    1/3, 1/1, 3/1, 5/1, 15/1 // Sun Orient
+    3/5, 1/3, 1/1, 3/1, 5/3 // Center Occident
+    1/5, 1/3, 1/1, 3/1, 5/1 // Center Meridian
+    1/15, 1/3, 1/1, 3/1, 15/1 // Center Orient
+    3/5, 9/5, 1/3, 1/1, 3/1 // Moon Occident
+    1/5, 3/5, 1/3, 1/1, 3/1 // Moon Meridian
+    1/15, 1/5, 1/3, 1/1, 3/1 // Moon Orient
+  Diatonic scale system
+    9/5, 1/3, 1/1, 3/1, 9/1, 5/3, 5/1 // Northern Dawn
+    1/3, 1/1, 3/1, 9/1, 5/3, 5/1, 15/1 // Northern Noon
+    1/5, 1/3, 1/1, 3/1, 9/1, 5/1, 15/1 // Northern Dusk
+    3/5, 9/5, 1/3, 1/1, 3/1, 5/9, 5/3 // Equator Dawn
+    1/5, 1/9, 1/3, 1/1, 3/1, 9/1, 5/1 // Equator Noon
+    1/15, 1/5, 1/3, 1/1, 3/1, 5/1, 15/1 // Equator Dusk
+    1/5, 3/5, 1/9, 1/3, 1/1, 3/1, 5/9 // Southern Dawn
+    1/15, 1/5, 3/5, 1/9, 1/3, 1/1, 3/1 // Southern Noon
+    1/15, 1/5, 1/9, 1/3, 1/1, 3/1, 5/1 // Southern Dusk
+  12-note sets (chromatic scales)
+    3/1 1/5 5/3 9/5 15/1 1/1 1/15 9/1 3/5 5/1 1/3 45/1 // 5-limit overtonal
+    1/45 3/1 1/5 5/3 1/9 15/1 1/1 1/15 9/1 3/5 5/1 1/3 45/1 // 5-limit symmetrical
+    1/45 3/1 1/5 5/3 1/9 15/1 1/1 1/15 5/9 3/5 5/1 1/3 // 5-limit undertonal
+    3/1 1/5 5/3 7/1 15/1 1/1 21/5 9/1 7/3 5/1 1/3 7/5 // 7-limit overtonal
+    5/7 3/1 1/5 3/7 7/1 15/1 1/1 1/15 1/7 7/3 5/1 1/3 7/5 // 7-limit symmetrical
+    5/7 3/1 1/5 3/7 1/9 5/21 1/1 1/15 1/7 3/5 5/1 1/3 // 7-limit undertonal
+  22-note sets
+    1/1, 25/3, 1/15, 5/9, 9/1, 75/1, 3/5, 5/1, 1/25, 1/3, 27/5, 45/1, 1/45, 5/27, 3/1, 25/1, 1/5, 5/3, 1/75, 1/9, 9/5, 15/1, 3/25 // 5-limit approximation of 22-EDO
+    1/1, 9/35, 1/15, 35/1, 1/7, 7/3, 3/5, 5/1, 9/7, 1/3, 3/35, 7/5, 5/7, 35/3, 3/1, 7/9, 1/5, 5/3, 3/7, 7/1, 1/35, 15/1, 35/9 // 7-limit approximation of 22-EDO
+  31-note sets
+    625/3, 125/3, 125/1, 375/1, 1125/1, 25/3, 25/1, 75/1, 225/1, 5/3, 5/1, 15/1, 45/1, 1/9, 1/3, 1/1, 3/1, 9/1, 3/5, 1/5, 1/15, 1/45, 3/25, 1/25, 1/75, 1/225, 3/125, 1/125, 1/375, 1/1125, 3/625 // 5-limit approximation of 31-EDO
+    1/25, 1/5, 1/1, 5/1, 25/1, 1/9, 1/3, 3/1, 9/1, 1/15, 3/5, 5/3, 15/1, 35/3, 35/1, 105/1, 7/3, 7/1, 21/1, 7/5, 21/5, 3/35, 1/35, 1/105, 3/7, 1/7, 1/21, 5/7, 5/21, 35/9, 9/35 // 7-limit approximation of 31-EDO
+  41-note sets
+    25/81, 25/27, 25/9, 25/3, 25/1, 75/1, 225/1, 675/1, 5/81, 5/27, 5/9, 5/3, 5/1, 15/1, 45/1, 135/1, 1/81, 1/27, 1/9, 1/3, 1/1, 3/1, 9/1, 27/1, 81/1, 1/135, 1/45, 1/15, 1/5, 3/5, 9/5, 27/5, 81/5, 1/675, 1/225, 1/75, 1/25, 3/25, 9/25, 27/25, 81/25 // 5-limit approximation of 41-EDO
+    35/9, 35/3, 35/1, 105/1, 7/9, 7/3, 7/1, 21/1, 63/1 , 7/5, 21/5, 63/5, 5/27, 5/9, 5/3, 5/1, 15/1, 1/27, 1/9, 1/3, 1/1, 3/1, 9/1, 27/1, 1/15, 1/5, 3/5, 9/5, 27/5, 5/63, 5/21, 5/7, 1/63, 1/21, 1/7, 3/7, 9/7, 1/105, 1/35, 3/35, 9/35 // 7-limit approximation of 41-EDO
+    35/3, 35/1, 105/1, 7/3, 7/1, 21/1, 63/1, 7/5, 21/5, 63/5, 25/3, 25/1, 5/27, 5/9, 5/3, 5/1, 15/1, 1/27, 1/9, 1/3, 1/1, 3/1, 9/1, 27/1, 1/15, 1/5, 3/5, 9/5, 27/5, 1/25, 3/25, 5/63, 5/21, 5/7, 1/63, 1/21, 1/7, 3/7, 1/105, 1/35, 3/35 // 7-limit approximation of 41-EDO (alternate version)
+`;
+
+const slug = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+// Parses LIBRARY_TEXT into a tree of groups and a flat list of sets, in library order.
+function parseLibrary(text) {
+  const root = { children: [], indent: -1 };
+  const stack = [root];
+  const sets = [];
+  for (const raw of text.split('\n')) {
+    const line = raw.trim();
+    if (!line) continue;
+    const indent = raw.length - raw.trimStart().length;
+    while (stack.length > 1 && stack[stack.length - 1].indent >= indent) stack.pop();
+    const parent = stack[stack.length - 1];
+    const cut = line.indexOf('//');
+    if (cut < 0) {
+      const g = { type: 'group', name: line, indent, children: [] };
+      parent.children.push(g);
+      stack.push(g);
+      continue;
+    }
+    const tokens = line.slice(0, cut).split(/[\s,;]+/).filter(Boolean);
+    const path = stack.slice(1).map((g) => g.name);
+    const name = line.slice(cut + 2).trim();
+    const set = { type: 'set', id: slug([...path, name].join(' ')), name, path, notes: tokens.join(' '), count: tokens.length };
+    parent.children.push(set);
+    sets.push(set);
+  }
+  return { tree: root.children, sets };
+}
+const LIBRARY = parseLibrary(LIBRARY_TEXT);
+const PRESETS = LIBRARY.sets;
+const PRESET_BY_ID = new Map(PRESETS.map((p) => [p.id, p]));
+const FIRST_SET = PRESETS.find((p) => p.name === '7-limit symmetrical') || PRESETS[0];
 
 const DEFAULTS = {
-  notes: DIAMOND_7, lattice: '357', projection: 'ortho', colour: 'diatonic', labels: 'both',
+  notes: FIRST_SET.notes, preset: FIRST_SET.id, lattice: '357', projection: 'ortho', colour: 'diatonic', labels: 'both',
   rods: 'straight', septimal: 'sixth', grid: true, axes: true, transparent: false,
 };
 const ENUMS = {
@@ -113,6 +197,9 @@ function loadState() {
     const raw = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
     if (raw && typeof raw === 'object') {
       if (typeof raw.notes === 'string') s.notes = raw.notes.slice(0, 5000);
+      // A remembered set counts only if the notes still match it; otherwise the notes are the visitor's own.
+      const p = PRESET_BY_ID.get(raw.preset);
+      s.preset = p && p.notes === s.notes ? p.id : '';
       for (const k in ENUMS) if (ENUMS[k].includes(raw[k])) s[k] = raw[k];
       for (const k of ['grid', 'axes', 'transparent']) if (typeof raw[k] === 'boolean') s[k] = raw[k];
     }
@@ -224,6 +311,7 @@ function readTheme() {
   theme = { stage: cssVar('--stage'), ink: cssVar('--ink'), muted: cssVar('--muted'), rod: cssVar('--rod'), grid: cssVar('--gridline') };
   rodMat.color.set(theme.rod);
   gridMat.color.set(theme.grid);
+  if (labelSprites.length) makeLabels(DPR(), true);
   dirty = true;
 }
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readTheme);
@@ -314,6 +402,7 @@ function buildScene() {
     molecule.add(m);
   }
   if (state.grid && model.nodes.length) { gridLines = buildGrid(); molecule.add(gridLines); }
+  makeLabels(DPR(), true);
   dirty = true;
 }
 
@@ -411,53 +500,111 @@ function setProjection(p) {
 controls.addEventListener('start', () => { tween = null; if (hovered) setHover(null); });
 controls.addEventListener('change', () => { dirty = true; });
 
-/* ---------- overlay: labels and axis key ---------- */
+/* ---------- labels: images placed in the scene, so nearer balls and rods hide them ---------- */
 
 const FONT_NOTE = '600 13px Jost, "Avenir Next", "Helvetica Neue", sans-serif';
 const FONT_RATIO = '500 11px "IBM Plex Mono", ui-monospace, Menlo, monospace';
 const FONT_AXIS = '500 11px Jost, "Avenir Next", "Helvetica Neue", sans-serif';
-const labelRay = new THREE.Raycaster();
+const LABEL_GAP = 3;              // CSS px between a ball and its label
+const LABEL_PAD = 3;              // CSS px of room around the text for its halo
+const LABEL_LIFT = BALL_R + 0.02; // a label sits just in front of its own ball, so its own rods never cover it
 
-function drawLabels(ctx, w, h, halo) {
-  const camUp = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
-  const v = new THREE.Vector3(), v2 = new THREE.Vector3(), at = new THREE.Vector2();
-  const items = [];
-  for (const nd of model.nodes) {
-    v.copy(nd.pos).project(camera);
-    if (v.z < -1 || v.z > 1) continue;
-    const x = (v.x + 1) / 2 * w, y = (1 - v.y) / 2 * h;
-    v2.copy(nd.pos).addScaledVector(camUp, BALL_R).project(camera);
-    const r = Math.abs((1 - v2.y) / 2 * h - y);
-    // A ball hidden behind another ball gets a faint label.
-    at.set(v.x, v.y);
-    labelRay.setFromCamera(at, camera);
-    const first = labelRay.intersectObjects(ballMeshes, false)[0];
-    const hidden = !!first && first.object.userData.node !== nd;
-    items.push({ nd, x, y, r, depth: v.z, hidden });
-  }
-  if (!items.length) return;
-  const dmin = Math.min(...items.map((i) => i.depth)), dmax = Math.max(...items.map((i) => i.depth));
-  items.sort((a, b) => b.depth - a.depth);
+const labelGroup = new THREE.Group();
+scene.add(labelGroup);
+let labelSprites = [];
+let labelScale = 1; // device pixels per CSS pixel in the label images
+
+function labelLines(nd) {
+  const lines = [];
+  if (state.labels === 'note' || state.labels === 'both') lines.push([nd.name, FONT_NOTE, theme.ink, 15]);
+  if (state.labels === 'ratio' || state.labels === 'both') lines.push([nd.label, FONT_RATIO, state.labels === 'both' ? theme.muted : theme.ink, 13]);
+  return lines;
+}
+
+// Draws one label at `scale` device pixels per CSS pixel; its width is even so it can sit on whole pixels.
+function labelImage(nd, scale, halo) {
+  const lines = labelLines(nd);
+  const c = document.createElement('canvas');
+  const ctx = c.getContext('2d');
+  let tw = 0;
+  for (const [text, font] of lines) { ctx.font = font; tw = Math.max(tw, ctx.measureText(text).width); }
+  const cssW = tw + 2 * LABEL_PAD + 2;
+  const cssH = LABEL_GAP + lines.reduce((sum, l) => sum + l[3], 0) + LABEL_PAD;
+  c.width = 2 * Math.ceil(cssW * scale / 2);
+  c.height = Math.ceil(cssH * scale);
+  ctx.scale(scale, scale);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
   ctx.lineJoin = 'round';
-  for (const it of items) {
-    const fade = dmax > dmin ? 1 - 0.45 * (it.depth - dmin) / (dmax - dmin) : 1;
-    ctx.globalAlpha = fade * (it.hidden ? 0.3 : 1);
-    let y = it.y + it.r + 3;
-    const lines = [];
-    if (state.labels === 'note' || state.labels === 'both') lines.push([it.nd.name, FONT_NOTE, theme.ink, 15]);
-    if (state.labels === 'ratio' || state.labels === 'both') lines.push([it.nd.label, FONT_RATIO, state.labels === 'both' ? theme.muted : theme.ink, 13]);
-    for (const [text, font, colour, lh] of lines) {
-      ctx.font = font;
-      if (halo) { ctx.strokeStyle = theme.stage; ctx.lineWidth = 3.5; ctx.strokeText(text, it.x, y); }
-      ctx.fillStyle = colour;
-      ctx.fillText(text, it.x, y);
-      y += lh;
-    }
+  let y = LABEL_GAP;
+  for (const [text, font, colour, lh] of lines) {
+    ctx.font = font;
+    if (halo) { ctx.strokeStyle = theme.stage; ctx.lineWidth = 3.5; ctx.strokeText(text, c.width / scale / 2, y); }
+    ctx.fillStyle = colour;
+    ctx.fillText(text, c.width / scale / 2, y);
+    y += lh;
   }
-  ctx.globalAlpha = 1;
+  return c;
 }
+
+function disposeLabels() {
+  for (const sp of labelSprites) { sp.material.map.dispose(); sp.material.dispose(); }
+  labelGroup.clear();
+  labelSprites = [];
+}
+
+function makeLabels(scale, halo) {
+  disposeLabels();
+  labelScale = scale;
+  if (state.labels === 'none') return;
+  for (const nd of model.nodes) {
+    const img = labelImage(nd, scale, halo);
+    const tex = new THREE.CanvasTexture(img);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.generateMipmaps = false;
+    tex.minFilter = THREE.LinearFilter;
+    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, sizeAttenuation: false, toneMapped: false });
+    const sp = new THREE.Sprite(mat);
+    sp.center.set(0.5, 1); // hangs from its top edge
+    sp.userData = { node: nd, w: img.width, h: img.height };
+    labelGroup.add(sp);
+    labelSprites.push(sp);
+  }
+  dirty = true;
+}
+
+// Every frame: hang each label under its ball, lift it toward the camera, keep it a fixed size on
+// screen, snap it to whole device pixels so the text stays sharp, and fade labels further back.
+const _a = new THREE.Vector3(), _camUp = new THREE.Vector3(), _toCam = new THREE.Vector3();
+function placeLabels() {
+  if (!labelSprites.length) return;
+  camera.updateMatrixWorld();
+  const W = renderer.domElement.width, H = renderer.domElement.height;
+  const isOrtho = camera === ortho;
+  // World units per CSS pixel (in perspective, per unit of distance: sizeAttenuation is off).
+  const k = isOrtho ? (ortho.top - ortho.bottom) / ortho.zoom / size.h : 2 * Math.tan(THREE.MathUtils.degToRad(FOV) / 2) / size.h;
+  _camUp.set(0, 1, 0).applyQuaternion(camera.quaternion);
+  if (isOrtho) _toCam.set(0, 0, 1).applyQuaternion(camera.quaternion);
+  const depths = labelSprites.map((sp) => _a.copy(sp.userData.node.pos).project(camera).z);
+  const dmin = Math.min(...depths), dmax = Math.max(...depths);
+  labelSprites.forEach((sp, i) => {
+    const { node, w, h } = sp.userData;
+    _a.copy(node.pos).addScaledVector(_camUp, -BALL_R);
+    if (!isOrtho) _toCam.subVectors(camera.position, _a).normalize();
+    _a.addScaledVector(_toCam, LABEL_LIFT).project(camera);
+    sp.visible = _a.z > -1 && _a.z < 1;
+    if (!sp.visible) return;
+    const left = Math.round((_a.x + 1) / 2 * W - w / 2);
+    const top = Math.round((1 - _a.y) / 2 * H);
+    _a.x = (left + w / 2) / W * 2 - 1;
+    _a.y = 1 - top / H * 2;
+    sp.position.copy(_a.unproject(camera));
+    sp.scale.set(w / labelScale * k, h / labelScale * k, 1);
+    sp.material.opacity = dmax > dmin ? 1 - 0.45 * (depths[i] - dmin) / (dmax - dmin) : 1;
+  });
+}
+
+/* ---------- overlay: axis key ---------- */
 
 function drawAxes(ctx, w, h, halo) {
   const ox = 44, oy = h - 44, L = 24;
@@ -495,7 +642,6 @@ function drawOverlay(ctx, w, h, scale, onScreen) {
   if (onScreen) ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
   const halo = onScreen || !state.transparent;
-  if (state.labels !== 'none' && model.nodes.length) drawLabels(ctx, w, h, halo);
   if (state.axes && model.nodes.length) drawAxes(ctx, w, h, halo);
 }
 
@@ -508,6 +654,7 @@ function resize() {
   size.h = Math.max(1, r.height);
   renderer.setPixelRatio(DPR());
   renderer.setSize(size.w, size.h, false);
+  if (labelSprites.length && labelScale !== DPR()) makeLabels(DPR(), true);
   overlay.width = Math.round(size.w * DPR());
   overlay.height = Math.round(size.h * DPR());
   const aspect = size.w / size.h;
@@ -522,6 +669,7 @@ new ResizeObserver(resize).observe(stage);
 function render() {
   lightRig.position.copy(camera.position);
   lightRig.quaternion.copy(camera.quaternion);
+  placeLabels();
   renderer.render(scene, camera);
 }
 
@@ -598,13 +746,90 @@ glCanvas.addEventListener('pointerup', (e) => {
 /* ================= panel ================= */
 
 const notesEl = $('notes');
-const presetEl = $('preset');
-for (const p of PRESETS) {
-  const o = document.createElement('option');
-  o.value = p.id;
-  o.textContent = p.name;
-  presetEl.append(o);
+const libraryEl = $('library');
+const setRows = new Map();
+
+// Groups are <details>; siblings share a name, so opening one group closes the others.
+function buildLibrary(items, depth, groupName) {
+  const frag = document.createDocumentFragment();
+  let list = null;
+  for (const it of items) {
+    if (it.type === 'group') {
+      const d = document.createElement('details');
+      d.className = 'lib-group';
+      d.setAttribute('name', groupName);
+      const sum = document.createElement('summary');
+      sum.textContent = it.name;
+      d.append(sum, buildLibrary(it.children, depth + 1, 'lib-' + slug(it.name)));
+      frag.append(d);
+      list = null;
+    } else {
+      if (!list) { list = document.createElement('div'); list.className = 'lib-items'; frag.append(list); }
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'set';
+      const name = document.createElement('span');
+      name.textContent = it.name;
+      const count = document.createElement('span');
+      count.className = 'set-count';
+      count.textContent = it.count;
+      count.title = `${it.count} notes`;
+      b.append(name, count);
+      b.addEventListener('click', () => loadPreset(it));
+      setRows.set(it.id, b);
+      list.append(b);
+    }
+  }
+  return frag;
 }
+libraryEl.append(buildLibrary(LIBRARY.tree, 0, 'lib-top'));
+
+// Marks the current set in the library and names it on the stage. With `reveal`, opens its
+// groups and scrolls the library (only the library, never the page) to bring it into view.
+function syncLibrary(reveal = false) {
+  const p = PRESET_BY_ID.get(state.preset);
+  for (const [id, row] of setRows) {
+    row.classList.toggle('active', id === state.preset);
+    if (id === state.preset) row.setAttribute('aria-current', 'true'); else row.removeAttribute('aria-current');
+  }
+  $('set-group').textContent = p ? p.path.join(' · ') : '';
+  $('set-name').textContent = p ? p.name : 'Your notes';
+  if (!p || !reveal) return;
+  const row = setRows.get(p.id);
+  for (let d = row.closest('details'); d; d = d.parentElement.closest('details')) d.open = true;
+  const lr = libraryEl.getBoundingClientRect(), rr = row.getBoundingClientRect();
+  if (rr.top < lr.top) libraryEl.scrollTop += rr.top - lr.top - 8;
+  else if (rr.bottom > lr.bottom) libraryEl.scrollTop += rr.bottom - lr.bottom + 8;
+}
+
+function loadPreset(p) {
+  state.preset = p.id;
+  state.notes = p.notes;
+  notesEl.value = p.notes;
+  if (state.lattice !== '357' && parseNotes(p.notes).notes.some((n) => n.e[3] !== 0)) state.lattice = '357';
+  saveState();
+  refresh({ fit: true });
+  syncLibrary(true);
+}
+
+function stepPreset(dir) {
+  const n = PRESETS.length;
+  const i = PRESETS.findIndex((p) => p.id === state.preset);
+  loadPreset(PRESETS[i < 0 ? (dir > 0 ? 0 : n - 1) : (i + dir + n) % n]);
+}
+$('set-prev').addEventListener('click', () => stepPreset(-1));
+$('set-next').addEventListener('click', () => stepPreset(1));
+// ← and → step through the sets, except while typing or using a control that needs the arrow keys.
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+  if (e.target.closest && e.target.closest('input, textarea, select, [contenteditable]')) return;
+  e.preventDefault();
+  stepPreset(e.key === 'ArrowRight' ? 1 : -1);
+});
+
+const settingsEl = $('settings');
+settingsEl.addEventListener('toggle', (e) => { $('settings-btn').classList.toggle('on', e.newState === 'open'); });
 
 function renderMessages() {
   const msgs = [];
@@ -669,26 +894,14 @@ function refresh({ fit = false } = {}) {
   renderLegend();
   renderStatus();
   syncControls();
+  syncLibrary();
   if (fit) fitView();
 }
 
 let typing = null;
 notesEl.addEventListener('input', () => {
   clearTimeout(typing);
-  typing = setTimeout(() => { state.notes = notesEl.value; saveState(); refresh({ fit: true }); }, 220);
-});
-
-presetEl.addEventListener('change', () => {
-  const p = PRESETS.find((x) => x.id === presetEl.value);
-  presetEl.value = '';
-  if (!p) return;
-  state.notes = p.notes;
-  notesEl.value = p.notes;
-  if (p.lattice) state.lattice = p.lattice;
-  else if (state.lattice !== '357' && parseNotes(p.notes).notes.some((n) => n.e[3] !== 0)) state.lattice = '357';
-  if (p.rods) state.rods = p.rods;
-  saveState();
-  refresh({ fit: true });
+  typing = setTimeout(() => { state.notes = notesEl.value; state.preset = ''; saveState(); refresh({ fit: true }); }, 220);
 });
 
 for (const k of Object.keys(ENUMS)) {
@@ -723,6 +936,7 @@ async function savePNG() {
   const scale = Math.max(1, Math.min(3, 4096 / Math.max(w, h)));
   renderer.setPixelRatio(scale);
   renderer.setSize(w, h, false);
+  if (labelSprites.length) makeLabels(scale, !state.transparent);
   render();
   const out = document.createElement('canvas');
   out.width = renderer.domElement.width;
@@ -733,6 +947,7 @@ async function savePNG() {
   drawOverlay(ctx, w, h, out.width / w, false);
   renderer.setPixelRatio(DPR());
   renderer.setSize(w, h, false);
+  if (labelSprites.length) makeLabels(DPR(), true);
   dirty = true;
 
   const blob = await new Promise((res) => out.toBlob(res, 'image/png'));
@@ -752,6 +967,7 @@ notesEl.value = state.notes;
 readTheme();
 resize();
 refresh();
+syncLibrary(true);
 fitView(VIEW.iso, false);
 requestAnimationFrame(loop);
 
@@ -759,5 +975,5 @@ if (document.fonts) {
   Promise.all([
     document.fonts.load('600 13px Jost'),
     document.fonts.load('500 11px "IBM Plex Mono"'),
-  ]).catch(() => {}).finally(() => { dirty = true; });
+  ]).catch(() => {}).finally(() => { makeLabels(DPR(), true); });
 }

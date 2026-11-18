@@ -7,41 +7,24 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<!-- CodePen: paste everything from here to the closing </div> below into the HTML panel. -->
+<!-- CodePen: paste everything from here to the CodePen end comment below into the HTML panel. -->
 <div class="app">
   <aside class="panel" aria-label="Controls">
     <header class="head">
       <h1>Sonic Molecules</h1>
-      <p class="lede">Just-intonation chords and scales as balls and rods on a prime lattice. 1/1 is D. Seen from the front, 3 runs across and 5 runs up. Drag to turn, scroll or pinch to zoom, right-drag to pan.</p>
+      <p class="lede">Just-intonation chords and scales on a prime lattice. Drag to turn, scroll to zoom, right-drag to pan.</p>
     </header>
 
+    <section class="block lib-block">
+      <span class="eyebrow" id="library-label">Note sets</span>
+      <nav class="library" id="library" aria-labelledby="library-label"></nav>
+    </section>
+
     <section class="block">
-      <div class="block-head">
-        <label class="eyebrow" for="notes">Notes</label>
-        <select id="preset" aria-label="Load an example">
-          <option value="">Load an example…</option>
-        </select>
-      </div>
-      <textarea id="notes" rows="4" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
-      <p class="hint">Ratios such as <code>5/4</code> or <code>7</code>, or a whole chord such as <code>4:5:6:7</code>. Separate with spaces or new lines.</p>
+      <label class="eyebrow" for="notes">Notes</label>
+      <textarea id="notes" rows="2" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+      <p class="hint">Ratios such as <code>5/4</code> or <code>7</code>, chords such as <code>4:5:6</code>.</p>
       <ul class="msgs" id="msgs" hidden></ul>
-    </section>
-
-    <section class="block">
-      <span class="eyebrow" id="lattice-label">Lattice</span>
-      <div class="seg" role="radiogroup" aria-labelledby="lattice-label">
-        <label><input type="radio" name="lattice" id="lattice-357" value="357"><span>3 · 5 · 7</span></label>
-        <label><input type="radio" name="lattice" id="lattice-235" value="235"><span>2 · 3 · 5</span></label>
-      </div>
-      <p class="hint" id="lattice-hint"></p>
-    </section>
-
-    <section class="block">
-      <span class="eyebrow" id="projection-label">Projection</span>
-      <div class="seg" role="radiogroup" aria-labelledby="projection-label">
-        <label><input type="radio" name="projection" id="projection-ortho" value="ortho"><span>Orthographic</span></label>
-        <label><input type="radio" name="projection" id="projection-persp" value="persp"><span>Perspective</span></label>
-      </div>
     </section>
 
     <section class="block">
@@ -65,33 +48,6 @@
     </section>
 
     <section class="block">
-      <span class="eyebrow" id="septimal-label">Name 7 as</span>
-      <div class="seg" role="radiogroup" aria-labelledby="septimal-label">
-        <label><input type="radio" name="septimal" id="septimal-sixth" value="sixth"><span>Raised sixth</span></label>
-        <label><input type="radio" name="septimal" id="septimal-seventh" value="seventh"><span>Flat seventh</span></label>
-      </div>
-      <p class="hint" id="septimal-hint"></p>
-    </section>
-
-    <section class="block">
-      <span class="eyebrow" id="rods-label">Rods</span>
-      <div class="seg fit" role="radiogroup" aria-labelledby="rods-label">
-        <label><input type="radio" name="rods" id="rods-none" value="none"><span>None</span></label>
-        <label><input type="radio" name="rods" id="rods-straight" value="straight"><span>Straight only</span></label>
-        <label><input type="radio" name="rods" id="rods-diagonal" value="diagonal"><span>Straight + diagonal</span></label>
-      </div>
-      <p class="hint" id="rods-hint"></p>
-    </section>
-
-    <section class="block">
-      <span class="eyebrow">Show</span>
-      <div class="checks">
-        <label><input type="checkbox" id="show-grid"> 3–5 grid</label>
-        <label><input type="checkbox" id="show-axes"> Axis key</label>
-      </div>
-    </section>
-
-    <section class="block">
       <span class="eyebrow">Image</span>
       <div class="export-row">
         <button type="button" class="btn primary" id="save">Save PNG</button>
@@ -99,23 +55,93 @@
       </div>
       <p class="hint" id="export-msg" hidden></p>
     </section>
-
-    <p class="foot">Note names follow the line of fifths from D: a 3 is one fifth up, a 5 is a major third up (four fifths), and a 7 follows the Name 7 as setting. Diatonic colour follows the letter only.</p>
   </aside>
 
   <main class="stage" id="stage">
     <canvas id="gl"></canvas>
     <canvas id="overlay" aria-hidden="true"></canvas>
-    <div class="views" role="group" aria-label="Camera view">
-      <button type="button" class="btn" id="view-front">Front</button>
-      <button type="button" class="btn" id="view-top">Top</button>
-      <button type="button" class="btn" id="view-side">Side</button>
-      <button type="button" class="btn" id="view-iso">3D</button>
+    <div class="stagebar">
+      <div class="setbar">
+        <button type="button" class="step" id="set-prev" aria-label="Previous note set" title="Previous note set (←)">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button type="button" class="step" id="set-next" aria-label="Next note set" title="Next note set (→)">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="settitle" aria-live="polite">
+          <span class="setgroup" id="set-group"></span>
+          <span class="setname" id="set-name"></span>
+        </div>
+      </div>
+      <div class="tools">
+        <div class="views" role="group" aria-label="Camera view">
+          <button type="button" class="btn" id="view-front">Front</button>
+          <button type="button" class="btn" id="view-top">Top</button>
+          <button type="button" class="btn" id="view-side">Side</button>
+          <button type="button" class="btn" id="view-iso">3D</button>
+        </div>
+        <button type="button" class="btn" id="settings-btn" popovertarget="settings">Settings</button>
+      </div>
     </div>
     <div class="status" id="status"></div>
-    <div class="empty" id="empty" hidden>Type a ratio to place the first ball.</div>
+    <div class="empty" id="empty" hidden>Pick a note set, or type some ratios.</div>
     <div class="tip" id="tip" hidden></div>
   </main>
+</div>
+
+<div class="settings" id="settings" popover aria-labelledby="settings-title">
+  <div class="settings-head">
+    <h2 id="settings-title">Settings</h2>
+    <button type="button" class="close" popovertarget="settings" popovertargetaction="hide" aria-label="Close settings">
+      <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+
+  <section class="block">
+    <span class="eyebrow" id="lattice-label">Lattice</span>
+    <div class="seg" role="radiogroup" aria-labelledby="lattice-label">
+      <label><input type="radio" name="lattice" id="lattice-357" value="357"><span>3 · 5 · 7</span></label>
+      <label><input type="radio" name="lattice" id="lattice-235" value="235"><span>2 · 3 · 5</span></label>
+    </div>
+    <p class="hint" id="lattice-hint"></p>
+  </section>
+
+  <section class="block">
+    <span class="eyebrow" id="projection-label">Projection</span>
+    <div class="seg" role="radiogroup" aria-labelledby="projection-label">
+      <label><input type="radio" name="projection" id="projection-ortho" value="ortho"><span>Orthographic</span></label>
+      <label><input type="radio" name="projection" id="projection-persp" value="persp"><span>Perspective</span></label>
+    </div>
+  </section>
+
+  <section class="block">
+    <span class="eyebrow" id="septimal-label">Name 7 as</span>
+    <div class="seg" role="radiogroup" aria-labelledby="septimal-label">
+      <label><input type="radio" name="septimal" id="septimal-sixth" value="sixth"><span>Raised sixth</span></label>
+      <label><input type="radio" name="septimal" id="septimal-seventh" value="seventh"><span>Flat seventh</span></label>
+    </div>
+    <p class="hint" id="septimal-hint"></p>
+  </section>
+
+  <section class="block">
+    <span class="eyebrow" id="rods-label">Rods</span>
+    <div class="seg fit" role="radiogroup" aria-labelledby="rods-label">
+      <label><input type="radio" name="rods" id="rods-none" value="none"><span>None</span></label>
+      <label><input type="radio" name="rods" id="rods-straight" value="straight"><span>Straight only</span></label>
+      <label><input type="radio" name="rods" id="rods-diagonal" value="diagonal"><span>Straight + diagonal</span></label>
+    </div>
+    <p class="hint" id="rods-hint"></p>
+  </section>
+
+  <section class="block">
+    <span class="eyebrow">Show</span>
+    <div class="checks">
+      <label><input type="checkbox" id="show-grid"> 3–5 grid</label>
+      <label><input type="checkbox" id="show-axes"> Axis key</label>
+    </div>
+  </section>
+
+  <p class="foot">Note names follow the line of fifths from D, with 1/1 as D: a 3 is one fifth up, a 5 is a major third up (four fifths), and a 7 follows the Name 7 as setting. Diatonic colour follows the letter only.</p>
 </div>
 <!-- CodePen: end of the HTML panel. -->
 <script type="module" src="main.js"></script>
