@@ -735,13 +735,79 @@ glCanvas.addEventListener('pointermove', (e) => {
   if (m || hovered) setHover(m, e.clientX, e.clientY);
 });
 glCanvas.addEventListener('pointerleave', () => { if (hovered) setHover(null); });
-glCanvas.addEventListener('pointerdown', (e) => { downAt = { x: e.clientX, y: e.clientY }; });
+// A ball sounds as soon as it is pressed (left button, pen or finger); dragging on still turns the view.
+glCanvas.addEventListener('pointerdown', (e) => {
+  downAt = { x: e.clientX, y: e.clientY };
+  if (e.button !== 0) return;
+  const m = pick(e.clientX, e.clientY);
+  if (m) playNote(m.userData.node);
+});
 glCanvas.addEventListener('pointerup', (e) => {
+  unlockAudio(); // iOS only lets sound start when a touch ends, so the first tap may sound on release
   if (e.pointerType !== 'mouse' && downAt && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) < 8) {
     setHover(pick(e.clientX, e.clientY), e.clientX, e.clientY);
   }
   downAt = null;
 });
+
+/* ================= sound ================= */
+
+// A sine tone with a 10 ms attack and a 2 s exponential decay. Every note sounds in the octave
+// centred on D4, a tritone either side (G♯3 to G♯4 in equal temperament): 1/1 and 2/1 are both
+// D4, 4/3 is G4 above it, 3/2 is A3 below it.
+const D4_HZ = 293.66; // D4 at A4 = 440 Hz
+const ATTACK = 0.01;
+const DECAY = 2;
+const PEAK = 0.2;     // per note, so a few overlapping notes stay below full scale
+
+let audio = null;
+function audioOut() {
+  if (!audio) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    // On iPhone, play through the silent switch, as a music app would.
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (_) { /* not supported */ }
+    const ctx = new AC({ latencyHint: 'interactive' });
+    // A limiter catches the peaks when many notes ring at once.
+    const limiter = ctx.createDynamicsCompressor();
+    limiter.threshold.value = -6;
+    limiter.knee.value = 0;
+    limiter.ratio.value = 20;
+    limiter.attack.value = 0.002;
+    limiter.release.value = 0.15;
+    limiter.connect(ctx.destination);
+    audio = { ctx, out: limiter };
+  }
+  unlockAudio();
+  return audio;
+}
+function unlockAudio() {
+  if (audio && audio.ctx.state !== 'running') audio.ctx.resume().catch(() => {});
+}
+
+// Brings a ratio within half an octave of 1/1: into [1/√2, √2). No ratio lands exactly on √2.
+function octaveReduce(r) {
+  while (r >= Math.SQRT2) r /= 2;
+  while (r < Math.SQRT1_2) r *= 2;
+  return r;
+}
+
+function playNote(nd) {
+  const a = audioOut();
+  if (!a) return;
+  const { ctx, out } = a;
+  const t = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  osc.frequency.value = D4_HZ * octaveReduce(nd.ratio);
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0, t);
+  env.gain.linearRampToValueAtTime(PEAK, t + ATTACK);
+  env.gain.exponentialRampToValueAtTime(0.0001, t + ATTACK + DECAY);
+  osc.connect(env).connect(out);
+  osc.start(t);
+  osc.stop(t + ATTACK + DECAY + 0.02);
+  osc.onended = () => env.disconnect();
+}
 
 /* ================= panel ================= */
 
